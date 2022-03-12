@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - feature-fix-ci
+  pull_request:
+    branches_ignore: []
+
+jobs:
+  testing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Setup Snakemake environment
+        shell: /bin/bash -l {0}
+        run: |
+          export PATH="/usr/share/miniconda/bin:$PATH"
+          conda install -q --name base conda-forge::mamba
+          mamba create -q --name snakemake -c conda-forge bioconda::snakemake singularity
+
+
+      - name: Checkout submodules
+        run: git submodule update --init --recursive
+
+      - name: Run the full workflow
+        run: |
+          # activate conda env
+          export PATH="/usr/share/miniconda/bin:$PATH"
+          source activate snakemake
+          snakemake --use-conda --use-singularity --cores 2 --config ilastik_mem_mb=4000
+
+      - name: Run the full again to check if everything went through
+        run: |
+          # activate conda env
+          export PATH="/usr/share/miniconda/bin:$PATH"
+          snakemake --use-conda --use-singularity --cores 2 --config ilastik_mem_mb=4000
